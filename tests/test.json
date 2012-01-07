@@ -1,0 +1,5 @@
+{"list":[{ "name" : "joe", "age" : 20, "studinfo" : { "group" : "xx101", "id" : "12345", "avg_mark" : 4.51 } },
+         { "name" : "mike", "age" : 18, "studinfo" : { "group" : "xx301", "id" : "22345", "avg_mark" : 4.71 } },
+         { "name" : "tom", "age" : 18, "studinfo" : { "group" : "xx501", "id" : "32345", "avg_mark" : 4.21 } },
+         { "name" : "piter", "age" : 19, "studinfo" : { "group" : "xx201", "id" : "42345", "avg_mark" : 4.54 } },
+         { "name" : "walter", "age" : 21, "studinfo" : { "group" : "xx001", "id" : "52345", "avg_mark" : 4.22 } }]}

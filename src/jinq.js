@@ -2,13 +2,12 @@
 * Javascript INtergated Query :)
 * http://dev/null
 *
-* Copyright 2011, virpool
+* Copyright 2011-2012, virpool
 * Dual licensed under the MIT or GPL Version 2 licenses.
 *
-* Date: Tue September 20 22:51:24 2011 +0200
-*
 */
-;(function(window, $, undefined) {
+
+;(function (window, $, undefined) {
     
     function jinq(collection, options) {
         if (this instanceof jinq) {

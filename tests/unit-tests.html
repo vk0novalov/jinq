@@ -1,0 +1,304 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset = "utf-8">
+    <title>jinq test</title>
+
+    <meta name="description" content="collective blog">
+    <meta name="author" content="collectivecloud">
+
+    <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.6.2/jquery.min.js"></script>
+    <script language="javascript" src="app/jsUnitCore.js"></script>
+    <script src="../src/jinq.js"></script>
+</head>
+
+<body>
+
+    
+    <script type="text/javascript">
+        function getDummyCollection() {
+            var ar = 
+                [
+                    { "name" : "joe", "age" : 20, "studinfo" : { "group" : "xx101", "id" : "12345", "avg_mark" : 4.51 } },
+                    { "name" : "mike", "age" : 18, "studinfo" : { "group" : "xx301", "id" : "22345", "avg_mark" : 4.71 } },
+                    { "name" : "tom", "age" : 18, "studinfo" : { "group" : "xx501", "id" : "32345", "avg_mark" : 4.21 } },
+                    { "name" : "piter", "age" : 19, "studinfo" : { "group" : "xx201", "id" : "42345", "avg_mark" : 4.54 } },
+                    { "name" : "walter", "age" : 21, "studinfo" : { "group" : "xx001", "id" : "52345", "avg_mark" : 4.22 } }
+                ];
+            return ar;
+        }
+        
+        function testSelect() {
+            var result = jinq(getDummyCollection()).select(function(e) { return { "name": e.name, "test": e.age }; }).get();
+            assertNotNull(null, result);
+            assertEquals(5, result.length);
+            assertEquals(20, result[0].test);
+        }
+         
+        function testWhere() {
+            var result = jinq(getDummyCollection()).where(function(e) { return e.age > 18; }).get();
+            assertNotNull(null, result);
+            assertEquals(3, result.length);
+        }
+        
+        function testDistinct() {
+            var result = jinq(getDummyCollection()).distinct(function(e) { return e.age; }).get();
+            assertNotNull(null, result);
+            assertEquals(4, result.length);
+        }
+        
+        function testOrderby() {
+            var result = jinq(getDummyCollection()).orderby(function(e) { return e.studinfo.avg_mark; }).get();
+            assertNotNull(null, result);
+            assertEquals("tom", result[0].name);
+        }
+        
+        function testOrderbydesc() {
+            var result = jinq(getDummyCollection()).orderbydesc(function(e) { return e.studinfo.avg_mark; }).get();
+            assertNotNull(null, result);
+            assertEquals("mike", result[0].name);
+        }
+        
+        function testReduce() {
+            var sum = parseInt(jinq(getDummyCollection()).reduce(function(e) { return e.studinfo.avg_mark; }));
+            assertEquals(22, sum);
+        }
+        
+        function testAverage() {
+            var avg = parseInt(jinq(getDummyCollection()).average('age'));
+            assertEquals(19, avg);
+        }
+        
+        function testTake() {
+            var result = jinq(getDummyCollection()).take(2).get();
+            assertNotNull(null, result);
+            assertEquals(2, result.length);
+        }
+        
+        function testTakeWhile() {
+            var result = jinq(getDummyCollection()).takeWhile(function(e){ return e.studinfo.avg_mark > 4.5; }).get();
+            assertNotNull(null, result);
+            assertEquals(2, result.length);
+        }
+        
+        function testLast() {
+            var result = jinq(getDummyCollection()).last(2).get();
+            assertNotNull(null, result);
+            assertEquals(2, result.length);
+        }
+        
+        function testIndexOf() {
+            var result = jinq(getDummyCollection()).indexOf("piter", function(e){return e.name});
+            assertEquals(3, result);
+        }
+        
+        function testAny() {
+            var result = jinq(getDummyCollection()).any(function(e){ return e.studinfo.group === "xx501"; });
+            assertTrue(result);
+            result = jinq(getDummyCollection()).any(function(e){ return e.studinfo.group === "_36501_"; });
+            assertFalse(result);
+        }
+        
+        function testAll() {
+            var result = jinq(getDummyCollection()).all(function(e){ return e.studinfo.avg_mark > 4; });
+            assertTrue(result);
+            result = jinq(getDummyCollection()).all(function(e){ return e.studinfo.avg_mark > 4.5; });
+            assertFalse(result);
+        }
+        
+        function testSkip() {
+            var result = jinq(getDummyCollection()).skip(2).get();
+            assertNotNull(null, result);
+            assertEquals(3, result.length);
+        }
+        
+        function testSkipWhile() {
+            var result = jinq(getDummyCollection()).skipWhile(function(e){ return e.studinfo.avg_mark < 4.7; }).get();
+            assertNotNull(null, result);
+            assertEquals(4, result.length);
+        }
+        
+        function testMax() {
+            var result = jinq(getDummyCollection()).max(function(e){ return e.studinfo.avg_mark; });
+            assertEquals(4.71, result);
+        }
+        
+        function testMin() {
+            var result = jinq(getDummyCollection()).min(function(e){ return e.studinfo.avg_mark; });
+            assertEquals(4.21, result);
+        }
+        
+        function testMaxObj() {
+            var result = jinq(getDummyCollection()).max_(function(e){ return e.studinfo.avg_mark; });
+            assertEquals(4.71, result.studinfo.avg_mark);
+        }
+        
+        function testMinObj() {
+            var result = jinq(getDummyCollection()).min_(function(e){ return e.studinfo.avg_mark; });
+            assertEquals(4.21, result.studinfo.avg_mark);
+        }
+        
+        function testReverse() {
+            var result = jinq(getDummyCollection()).reverse().get();
+            assertEquals("walter", result[0].name);
+        }
+        
+		function testGroupBy() {
+			var result = jinq(getDummyCollection()).groupBy(function(e){return e.age;});
+			var _cnt = 0;
+			for (var prop in result) if (result.hasOwnProperty(prop)) _cnt++;
+			assertEquals(4, _cnt);
+			assertEquals(2, result[18].length);
+			assertEquals("walter", result[21][0].name);
+		}
+        
+        function testFirst() {
+            var result = jinq(getDummyCollection()).where(function(e) { return e.age == 18; }).first();
+            assertNotNull(null, result);
+            assertEquals("mike", result.name);
+        }
+        
+        function testFirstWithExpression() {
+            var result = jinq(getDummyCollection()).first(function(e) { return e.age == 18; });
+            assertNotNull(null, result);
+            assertEquals("mike", result.name);
+        }
+        
+        function testFirstOrDefault() {
+            var result = jinq(getDummyCollection()).where(function(e) { return e.age == 18; }).firstOrDefault();
+            assertNotNull(null, result);
+            assertEquals("mike", result.name);
+            
+            result = jinq(getDummyCollection()).where(function(e) { return e.age == 28; }).firstOrDefault();
+            assertNull(null, result);
+        }
+        
+        function testFirstOrDefaultWithExpression() {
+            var result = jinq(getDummyCollection()).firstOrDefault(function(e) { return e.age == 18; });
+            assertNotNull(null, result);
+            assertEquals("mike", result.name);
+            
+            result = jinq(getDummyCollection()).firstOrDefault(function(e) { return e.age == 28; });
+            assertNull(null, result);
+        }
+        
+        // lambda-string part
+        function testOrderbyString() {
+            var result = jinq(getDummyCollection()).orderby('studinfo.avg_mark').get();
+            assertNotNull(null, result);
+            assertEquals(result[0].name, "tom");
+        }
+        
+        function testOrderbydescString() {
+            var result = jinq(getDummyCollection()).orderbydesc('studinfo.avg_mark').get();
+            assertNotNull(null, result);
+            assertEquals(result[0].name, "mike");
+        }
+
+        // test "this"
+        function testSelectWithThis() {
+            var result = jinq(getDummyCollection()).select(function() { return { "name": this.name, "test": this.age }; }).get();
+            assertNotNull(null, result);
+            assertEquals(5, result.length);
+            assertEquals(20, result[0].test);
+        }
+
+        function testWhereWithThis() {
+            var result = jinq(getDummyCollection()).where(function() { return this.age > 18; }).get();
+            assertNotNull(null, result);
+            assertEquals(3, result.length);
+        }
+
+        function testDistinctWithThis() {
+            var result = jinq(getDummyCollection()).distinct(function() { return this.age; }).get();
+            assertNotNull(null, result);
+            assertEquals(4, result.length);
+        }
+
+        function testOrderbyWithThis() {
+            var result = jinq(getDummyCollection()).orderby(function() { return this.studinfo.avg_mark; }).get();
+            assertNotNull(null, result);
+            assertEquals("tom", result[0].name);
+        }
+
+        function testOrderbydescWithThis() {
+            var result = jinq(getDummyCollection()).orderbydesc(function() { return this.studinfo.avg_mark; }).get();
+            assertNotNull(null, result);
+            assertEquals("mike", result[0].name);
+        }
+
+        function testReduceWithThis() {
+            var sum = parseInt(jinq(getDummyCollection()).reduce(function() { return this.studinfo.avg_mark; }, 10));
+            assertEquals(32, sum);
+        }
+
+        function testAverageWithThis() {
+            var avg = parseInt(jinq(getDummyCollection()).average(function() { return this.age; }));
+            assertEquals(19, avg);
+        }
+
+        function testIndexOfWithThis() {
+            var result = jinq(getDummyCollection()).indexOf("piter", function(){return this.name});
+            assertEquals(3, result);
+        }
+
+        function testAnyWithThis() {
+            var result = jinq(getDummyCollection()).any(function(){ return this.studinfo.group === "xx501"; });
+            assertTrue(result);
+            result = jinq(getDummyCollection()).any(function(){ return this.studinfo.group === "_36501_"; });
+            assertFalse(result);
+        }
+
+        function testAllWithThis() {
+            var result = jinq(getDummyCollection()).all(function(){ return this.studinfo.avg_mark > 4; });
+            assertTrue(result);
+            result = jinq(getDummyCollection()).all(function(){ return this.studinfo.avg_mark > 4.5; });
+            assertFalse(result);
+        }
+
+        function testMaxWithThis() {
+            var result = jinq(getDummyCollection()).max(function(){ return this.studinfo.avg_mark; });
+            assertEquals(4.71, result);
+        }
+
+        function testMinWithThis() {
+            var result = jinq(getDummyCollection()).min(function(){ return this.studinfo.avg_mark; });
+            assertEquals(4.21, result);
+        }
+
+        function testMaxObjWithThis() {
+            var result = jinq(getDummyCollection()).max_(function(){ return this.studinfo.avg_mark; });
+            assertEquals(4.71, result.studinfo.avg_mark);
+        }
+
+        function testMinObjWithThis() {
+            var result = jinq(getDummyCollection()).min_(function(){ return this.studinfo.avg_mark; });
+            assertEquals(4.21, result.studinfo.avg_mark);
+        }
+
+
+        // async
+
+        function testSelectAsync() {
+            var notEnd = true;
+
+            var result = jinq('test.json').select(function(e) { return { "name": e.name, "test": e.age }; }).callback(
+                function(result){
+                    return result.list;
+                }, function(result) {
+                    assertNotNull(null, result);
+                    assertEquals(5, result.length);
+                    assertEquals(20, result[0].test);
+
+                    notEnd = false;
+                }
+            );
+
+            //while (notEnd) {
+                
+            //}
+        }
+    </script>
+</body>
+
+</html>
