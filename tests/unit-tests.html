@@ -10,6 +10,7 @@
     <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.6.2/jquery.min.js"></script>
     <script language="javascript" src="app/jsUnitCore.js"></script>
     <script src="../src/jinq.js"></script>
+    <script src="../src/jinq.jquery-adapter.js"></script>
 </head>
 
 <body>
@@ -26,6 +27,23 @@
                     { "name" : "walter", "age" : 21, "studinfo" : { "group" : "xx001", "id" : "52345", "avg_mark" : 4.22 } }
                 ];
             return ar;
+        }
+        
+        var asyncSelectResult;
+        function setUpPage() {
+            setUpPageStatus = 'running';
+            jinq("test.json").where(function(){return this.age > 20;}).callback(function(result){
+                return result.list;
+            }, function(result) {
+                asyncSelectResult = result;
+                setUpPageComplete();
+            });
+        }
+
+        function setUpPageComplete() {
+            if (setUpPageStatus == 'running')
+                setUpPageStatus = 'complete';
+            inform('setUpPageComplete()', setUpPageStatus);
         }
         
         function testSelect() {
@@ -280,23 +298,7 @@
         // async
 
         function testSelectAsync() {
-            var notEnd = true;
-
-            var result = jinq('test.json').select(function(e) { return { "name": e.name, "test": e.age }; }).callback(
-                function(result){
-                    return result.list;
-                }, function(result) {
-                    assertNotNull(null, result);
-                    assertEquals(5, result.length);
-                    assertEquals(20, result[0].test);
-
-                    notEnd = false;
-                }
-            );
-
-            //while (notEnd) {
-                
-            //}
+            assertEquals("walter", asyncSelectResult[0].name);
         }
     </script>
 </body>

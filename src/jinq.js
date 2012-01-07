@@ -7,39 +7,70 @@
 *
 */
 
-;(function (window, $, undefined) {
+;(function (window, undefined) {
     
     var defaults = {
         'dataType'      : 'json',
         'stringType'    : '[object String]',
-        'functionType'  : '[object Function]'
+        'functionType'  : '[object Function]',
+        'arrayType'     : '[object Array]'
     };
     
     var toString = Object.prototype.toString;
     
-    function _testCallback (callback) {
-        return (this[callback] && Object.prototype.toString.call(this[callback]) === defaults['functionType']);
+    // -- utils
+    function _isDefinedAndArray (prop) {
+        return !!prop && toString.call(prop) === defaults['arrayType'];
     }
     
-    function _createRequest (url) {
-        $.ajax(url, $.extend(this._options, {
-            'success' : function(result) {
-                if (_testCallback.call(this, '_callbackExtracter')) {
-                    this._collection = this._callbackExtracter(result);
-                } else {
-                    this._collection = result.list || result; // default
-                }
-            },
-            'error' : function() {
-                // todo: notify about error state
+    function _isDefinedAndFunction (f) {
+        return !!f && toString.call(f) === defaults['functionType'];
+    }
+    // -- end utils
+    
+    var _createRequest;
+    
+    function _processEndRequest () {
+        var tester, handler = function() {
+            if (this._inProcess) {
+                setTimeout(tester, 1);
+            } else {
+                this._mode = 0;
+                for (var i = 0; i < this._queueCalls.length; i++) {
+                    var call = this._queueCalls[i];
+                    this[call.method](call.lmd);
+                }   
 
-                this._collection = [];
-            },
-            'complete' : function () {
-                this._inProcess = false;
-            },
-            'context' : this
-        }));
+                if (_isDefinedAndFunction(this['_callbackResult'])) {
+                    this._callbackResult.call(this._callbackContext || this, this._collection);
+                }
+            }
+        };
+        var ctx = this;
+        
+        tester = function () {
+            handler.call(ctx);
+        };
+        setTimeout(tester, 10);
+    }
+    
+    function _findElem (array, item, selector) {
+        var i = 0,
+            length = array.length;
+        while (i < length) {
+            var curItem = array[i++];
+            if (selector.call(curItem, curItem) === selector.call(item, item)) return true;
+        }
+        return false;
+    }
+    
+    // --- JINQ core implemenetation
+    function ChainCallback (method, lmd) {
+        if (!(this instanceof ChainCallback)) {
+            return new ChainCallback(method, lmd);
+        }
+        this.method = method;
+        this.lmd = lmd;
     }
     
     function jinq(collection, options) {
@@ -57,7 +88,7 @@
         }
 
         this._init();
-
+        
 	    return this;
     }
 
@@ -65,48 +96,29 @@
 
         _init: function() {
               if (toString.call(this._collection) === defaults['stringType']) {
+                  if (!_isDefinedAndFunction(_createRequest)) {
+                    throw 'Request creator is required';
+                  }
+              
                   this._mode = 1;
-                  this._callbackExtracter = null;
-                  this._callbackResult = null;
+                  this._callbackExtracter = void 0;
+                  this._callbackResult = void 0;
+                  this._callbackContext = void 0;
 
                   this._inProcess = true;
 
                   _createRequest.call(this, this._collection);
               }
         },
-
-        _processEndRequest: function() {
-            var handler = function() {
-                if (this._inProcess) {
-                    setTimeout($.proxy(handler, this), 1);
-                } else {
-                    this._mode = 0;
-                    for (var i = 0; i < this._queueCalls.length; i++) {
-                        var call = this._queueCalls[i];
-                        this[call.method](call.lmd);
-                    }
-
-                    if (_testCallback.call(this, '_callbackResult')) {
-                        this._callbackResult(this._collection);
-                    }
-                }
-            };
-            setTimeout($.proxy(handler, this), 10);
+        
+        setRequestCreator: function (requestCreator) {
+            if (_isDefinedAndFunction(requestCreator)) {
+                _createRequest = requestCreator;
+            }
         },
 
         _defaultLambda: function(e) {
             return e;
-        },
-
-        findElem: function(array, item, selector) {
-            var i = 0,
-                length = array.length;
-            while (i < length) {
-                var curItem = array[i];
-                if (selector.call(curItem, curItem) === selector.call(item, item)) return true;
-                i++;
-            }
-            return false;
         },
 
         _createLambdaFromString: function(lmd) {
@@ -135,10 +147,9 @@
             return lmd ? typeof lmd == 'function' ? lmd : this._createLambdaFromString(lmd) : this._defaultLambda;
         },
 
-
         select: function(lmd) {
             if (this._mode) {
-                this._queueCalls.push({'method':'select', 'lmd':lmd});
+                this._queueCalls.push(ChainCallback('select', lmd));
                 return this;
             }
 
@@ -154,7 +165,7 @@
 
         where: function(lmd, isNotChain) {
             if (this._mode) {
-                this._queueCalls.push({'method':'where', 'lmd':lmd});
+                this._queueCalls.push(ChainCallback('where', lmd));
                 return this;
             }
             var _newCollection = [];
@@ -175,7 +186,7 @@
 
         orderby: function(lmd) {
             if (this._mode) {
-                this._queueCalls.push({'method':'orderby', 'lmd':lmd});
+                this._queueCalls.push(ChainCallback('orderby', lmd));
                 return this;
             }
 
@@ -196,7 +207,7 @@
 
         orderbydesc: function(lmd) {
             if (this._mode) {
-                this._queueCalls.push({'method':'orderbydesc', 'lmd':lmd});
+                this._queueCalls.push(ChainCallback('orderbydesc', lmd));
                 return this;
             }
 
@@ -217,7 +228,7 @@
 
         each: function(lmd) {
             if (this._mode) {
-                this._queueCalls.push({'method':'each', 'lmd':lmd});
+                this._queueCalls.push(ChainCallback('each', lmd));
                 return this;
             }
 
@@ -230,14 +241,14 @@
 
         distinct: function(lmd) {
             if (this._mode) {
-                this._queueCalls.push({'method':'distinct', 'lmd':lmd});
+                this._queueCalls.push(ChainCallback('distinct', lmd));
                 return this;
             }
 
             var _newCollection = [];
 
             for (var i = 0, _length = this._collection.length; i < _length; ++i) {
-                if (!this.findElem(_newCollection, this._collection[i], lmd)) {
+                if (!_findElem.call(this, _newCollection, this._collection[i], lmd)) {
                     _newCollection.push(this._collection[i]);
                 }
             }
@@ -265,7 +276,7 @@
 
         take: function(count, isNotChain) {
             if (this._mode) {
-                this._queueCalls.push({'method':'take', 'lmd':lmd});
+                this._queueCalls.push(ChainCallback('take', lmd));
                 return this;
             }
 
@@ -284,7 +295,7 @@
 
         takeWhile: function(lmd, isNotChain) {
             if (this._mode) {
-                this._queueCalls.push({'method':'takeWhile', 'lmd':lmd});
+                this._queueCalls.push(ChainCallback('takeWhile', lmd));
                 return this;
             }
 
@@ -305,7 +316,7 @@
 
         last: function(count, isNotChain) {
             if (this._mode) {
-                this._queueCalls.push({'method':'last', 'lmd':lmd});
+                this._queueCalls.push(ChainCallback('last', lmd));
                 return this;
             }
 
@@ -410,7 +421,7 @@
 
         skip: function(count, isNotChain) {
             if (this._mode) {
-                this._queueCalls.push({'method':'skip', 'lmd':lmd});
+                this._queueCalls.push(('skip', lmd));
                 return this;
             }
 
@@ -430,7 +441,7 @@
 
         skipWhile: function(lmd, isNotChain) {
             if (this._mode) {
-                this._queueCalls.push({'method':'skipWhile', 'lmd':lmd});
+                this._queueCalls.push(ChainCallback('skipWhile', lmd));
                 return this;
             }
 
@@ -452,7 +463,7 @@
 
         reverse: function() {
             if (this._mode) {
-                this._queueCalls.push({'method':'reverse', 'lmd':lmd});
+                this._queueCalls.push(ChainCallback('reverse', lmd));
                 return this;
             }
 
@@ -503,12 +514,18 @@
             return this._collection;
         },
 
-        callback: function(clb, clbResult) {
+        callback: function(clb, clbResult, clbContext) {
             this._callbackExtracter = clb;
             this._callbackResult = clbResult;
-            this._processEndRequest();
+            this._callbackContext = clbContext;
+            _processEndRequest.call(this);
         }
     }
     
     window.jinq = jinq;
-})(this, jQuery)
+    
+    jinq.utils = {
+        'isDefinedAndArray'     : _isDefinedAndArray,
+        'isDefinedAndFunction'  : _isDefinedAndFunction
+    };
+})(this)

@@ -1,6 +1,13 @@
-﻿#stub
+﻿#stub#
 
 *small example:*
+
+    // in some html
+    
+    <script src="jinq.js"></script>
+    <script src="jinq.jquery-adapter.js"></script>
+    
+    // jinq.jquery-adapter.js - it is necessary for ajax requests, at this moment it has only one implemenetation with jQuery
 
     var collection = [33, 32, 54, 532, 2421, 553, 5335];
 	
