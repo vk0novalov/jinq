@@ -9,21 +9,54 @@
 
 ;(function (window, $, undefined) {
     
+    var defaults = {
+        'dataType'      : 'json',
+        'stringType'    : '[object String]',
+        'functionType'  : '[object Function]'
+    };
+    
+    var toString = Object.prototype.toString;
+    
+    function _testCallback (callback) {
+        return (this[callback] && Object.prototype.toString.call(this[callback]) === defaults['functionType']);
+    }
+    
+    function _createRequest (url) {
+        $.ajax(url, $.extend(this._options, {
+            'success' : function(result) {
+                if (_testCallback.call(this, '_callbackExtracter')) {
+                    this._collection = this._callbackExtracter(result);
+                } else {
+                    this._collection = result.list || result; // default
+                }
+            },
+            'error' : function() {
+                // todo: notify about error state
+
+                this._collection = [];
+            },
+            'complete' : function () {
+                this._inProcess = false;
+            },
+            'context' : this
+        }));
+    }
+    
     function jinq(collection, options) {
-        if (this instanceof jinq) {
-            this._collection = collection;
-            this._queueCalls = [];
-            this._mode = 0; // 0 - simple collection, 1 - async mode with chain of calls
-
-            this._options = options || {};
-            if (!this._options['dataType']) {
-                this._options['dataType'] = 'json';
-            }
-
-            this._init();
-        } else {
+        if (!(this instanceof jinq)) {
             return new jinq(collection, options);
         }
+        
+        this._collection = collection;
+        this._queueCalls = [];
+        this._mode = 0; // 0 - simple collection, 1 - async mode with chain of calls
+
+        this._options = options || {};
+        if (!this._options['dataType']) {
+            this._options['dataType'] = defaults['dataType'];
+        }
+
+        this._init();
 
 	    return this;
     }
@@ -31,39 +64,15 @@
     jinq.prototype = {
 
         _init: function() {
-              if (Object.prototype.toString.call(this._collection) == "[object String]") {
+              if (toString.call(this._collection) === defaults['stringType']) {
                   this._mode = 1;
                   this._callbackExtracter = null;
                   this._callbackResult = null;
 
                   this._inProcess = true;
 
-                  this._createRequest(this._collection);
+                  _createRequest.call(this, this._collection);
               }
-        },
-
-        _createRequest: function(url) {
-            $.ajax(url, $.extend(this._options, {
-                'success' : $.proxy(function(result) {
-                    if (this._testCallback('_callbackExtracter')) {
-                        this._collection = this._callbackExtracter(result);
-                    } else {
-                        this._collection = result.list || result; // default
-                    }
-
-                    this._inProcess = false;
-                }, this),
-                'error' : $.proxy(function() {
-                    // todo: notify about error state
-
-                    this._collection = [];
-                    this._inProcess = false;
-                }, this)
-            }));
-        },
-
-        _testCallback: function(callback) {
-            return (this[callback] && Object.prototype.toString.call(this[callback]) == "[object Function]");
         },
 
         _processEndRequest: function() {
@@ -77,12 +86,12 @@
                         this[call.method](call.lmd);
                     }
 
-                    if (this._testCallback('_callbackResult')) {
+                    if (_testCallback.call(this, '_callbackResult')) {
                         this._callbackResult(this._collection);
                     }
                 }
             };
-            setTimeout($.proxy(handler, this), 1);
+            setTimeout($.proxy(handler, this), 10);
         },
 
         _defaultLambda: function(e) {
@@ -104,20 +113,19 @@
 
             return function(object) {
 
-            var path, propValue, j, pathLength;
+                var path, propValue, j, pathLength;
 
-            path = lmd.split('.');
-            propValue = object;
-            for (j = 0, pathLength = path.length; j < pathLength; j++) {
-                propValue = propValue[path[j]];
-                if (propValue === undefined) {
-                throw {
-                    message: "fail"
-                };
-                continue;
+                path = lmd.split('.');
+                propValue = object;
+                for (j = 0, pathLength = path.length; j < pathLength; j++) {
+                    propValue = propValue[path[j]];
+                    if (propValue === undefined) {
+                        throw {
+                            message: "fail"
+                        };
+                    }
                 }
-            }
-            return propValue;
+                return propValue;
 
             };
 
@@ -482,7 +490,7 @@
             var _distinctedValues = jinq(this._collection).distinct(lmd).select(lmd).get();
             var _result = {};
 
-            for (var i = 0, _length = _distinctedValues.length; i < _length; i++) {
+            for (var i = 0, _length = _distinctedValues.length; i < _length; ++i) {
                 _result[_distinctedValues[i]] = jinq(this._collection).where(function(e) {
                     return lmd.call(e, e) === _distinctedValues[i];
                 }).get();

@@ -1,0 +1,26 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset = "utf-8">
+    <title>jinq test</title>
+
+    <meta name="description" content="collective blog">
+    <meta name="author" content="collectivecloud">
+    <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
+	<script src="../src/jinq.js"></script>
+</head>
+
+<body>
+    
+    <script type="text/javascript">
+        jinq("test.json").where(function(){return this.age > 20;}).callback(function(result){
+            return result.list;
+        }, function(result) {
+            alert(result[0].name);
+        });
+    </script>
+    
+    
+</body>
+
+</html>
