@@ -13,7 +13,7 @@
 	    console.log(filteredCollection[i]);
 	}
 
-    *or*
+    // or
 
     var filteredCollection = jinq(collection).where(function (e) { return e > 50; })
 	    .orderbydesc(function (e) { return e; })
