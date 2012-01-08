@@ -116,6 +116,23 @@
                 _createRequest = requestCreator;
             }
         },
+        
+        endRequestHandler: function (error, result) {
+            this._inProcess = false;
+            
+            if (error && typeof result === 'undefined') {
+                this._collection = [];
+                return false;
+            }
+        
+            if (_isDefinedAndFunction(this['_callbackExtracter'])) {
+                this._collection = this._callbackExtracter(result);
+            } else {
+                this._collection = _isDefinedAndArray(result.data) || 
+                    _isDefinedAndArray(result.list) || 
+                    result; // default
+            }
+        },
 
         _defaultLambda: function(e) {
             return e;
