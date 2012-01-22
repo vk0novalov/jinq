@@ -10,7 +10,6 @@
 ;(function (window, undefined) {
     
     var defaults = {
-        'dataType'      : 'json',
         'stringType'    : '[object String]',
         'functionType'  : '[object Function]',
         'arrayType'     : '[object Array]'
@@ -73,7 +72,7 @@
         this.lmd = lmd;
     }
     
-    function jinq(collection, options) {
+    function jinq(collection, options, requestCreator) {
         if (!(this instanceof jinq)) {
             return new jinq(collection, options);
         }
@@ -82,11 +81,10 @@
         this._queueCalls = [];
         this._mode = 0; // 0 - simple collection, 1 - async mode with chain of calls
 
-        this._options = options || {};
-        if (!this._options['dataType']) {
-            this._options['dataType'] = defaults['dataType'];
+        if (requestCreator) {
+            this._createRequest = requestCreator;
         }
-
+        this._options = options || {};
         this._init();
         
 	    return this;
@@ -96,7 +94,13 @@
 
         _init: function() {
               if (toString.call(this._collection) === defaults['stringType']) {
-                  if (!_isDefinedAndFunction(_createRequest)) {
+                  var createRequest;
+                  
+                  if (_isDefinedAndFunction(this._createRequest)) {
+                    createRequest = this._createRequest;
+                  } else if (_isDefinedAndFunction(_createRequest)) {
+                    createRequest = _createRequest;
+                  } else {
                     throw 'Request creator is required';
                   }
               
@@ -107,7 +111,7 @@
 
                   this._inProcess = true;
 
-                  _createRequest.call(this, this._collection);
+                  createRequest.call(this, this._collection);
               }
         },
         
@@ -125,8 +129,8 @@
                 return false;
             }
         
-            if (_isDefinedAndFunction(this['_callbackExtracter'])) {
-                this._collection = this._callbackExtracter(result);
+            if (this._schema) {
+                this._collection = result[this._schema];
             } else {
                 this._collection = _isDefinedAndArray(result.data) || 
                     _isDefinedAndArray(result.list) || 
@@ -527,12 +531,17 @@
             return _result;
         },
 
-        get: function() {
+        get: function () {
             return this._collection;
         },
+        
+        schema: function (schema) {
+            // biggest priority to extract data then _callbackExtracter
+            this._schema = schema;
+            return this;
+        },
 
-        callback: function(clb, clbResult, clbContext) {
-            this._callbackExtracter = clb;
+        callback: function(clbResult, clbContext) {
             this._callbackResult = clbResult;
             this._callbackContext = clbContext;
             _processEndRequest.call(this);
