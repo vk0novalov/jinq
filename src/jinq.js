@@ -284,7 +284,7 @@
             memory = initValue && !isNaN(parseInt(initValue)) ? initValue : 0;
             for (var i = 0, _length = this._collection.length; i < _length; ++i) {
                 var item = this._collection[i];
-                memory += lmd.call(item, item);
+                memory += parseInt(lmd.call(item, item), 10) || 0;
             }
             return memory;
         },
