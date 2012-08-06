@@ -27,7 +27,8 @@
     }
     // -- end utils
     
-    var _createRequest;
+    var _createRequest,
+        _lambdaCache = {};
     
     function _processEndRequest () {
         var tester, handler = function() {
@@ -143,8 +144,7 @@
         },
 
         _createLambdaFromString: function(lmd) {
-
-            return function(object) {
+            return _lambdaCache[lmd] || (_lambdaCache[lmd] = function(object) {
 
                 var path, propValue, j, pathLength;
 
@@ -160,7 +160,7 @@
                 }
                 return propValue;
 
-            };
+            });
 
         },
 
@@ -284,7 +284,7 @@
             memory = initValue && !isNaN(parseInt(initValue)) ? initValue : 0;
             for (var i = 0, _length = this._collection.length; i < _length; ++i) {
                 var item = this._collection[i];
-                memory += parseInt(lmd.call(item, item), 10) || 0;
+                memory += lmd.call(item, item) || 0;
             }
             return memory;
         },
